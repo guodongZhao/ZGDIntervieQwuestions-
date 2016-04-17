@@ -37,13 +37,19 @@ objc __weak typedof(self)weakSelf = self;
 ** 关于ARC的细节可以看下面的网址：[http://developer.apple.com/library/ios/#releasenotes/ObjectiveC/RN-TransitioningToARC/Introduction/Introduction.html]
 (http://developer.apple.com/library/ios/#releasenotes/ObjectiveC/RN-TransitioningToARC/Introduction/Introduction.html)
 * 3.描述一个你遇到过的retain cycle例子。
-* 
+ 
  首先我们主要看ARC下retain cycle的问题--
+
  ARC中，变量可以用四个关键字修饰：
+ 
 __strong： 赋值给这个变量的对象会自动被retain一次，如果在block中引用它，block也会retain它一次。
-__unsafe_unretained： 赋值给这个变量不会被retain，也就是说被他修饰的变量的存在不能保证持有对象的可靠性，它可能已经被释放了，而且留下了一个不安全的指针。也不会被block retain。
+
+__unsafe_unretained： 赋值给这个变量不会被retain，也就是说被他修饰的变量的存在不能保证持有对象的可靠性，它可能已经被释放了，而且留下了一个不安全的指针。也不会被block retain。 iOS5 __weak出现之前使用 
+
 __week：类似于__unsafe_unretained，只是如果所持有的对象被释放后，变量会自动被设置为nil，这样更安全些，不过只在IOS5.0以上的系统支持，同样不会被block retain。
+
 __block：修饰一个变量，表示这个变量能在block中被修改（值修改，而不是修改对象中的某一个属性，可以理解为修改指针的指向）。会被自动retain。于其他变量不同的是被 __block 修饰的变量在块中保存的是变量的地址。（其他为变量的值）
+
   block中的循环引用：一个viewController
 
  ```objc 
@@ -64,9 +70,11 @@ __block：修饰一个变量，表示这个变量能在block中被修改（值�
 }
  ```
 ** Xcode在编译以上程序的时候会给出一个警告：Captureing ‘self’ strongly in this block is likely to lead to a retain cycle。
+
 原因是_items实际上是self->items。_block对象在创建的时候会被retain一次，因此会导致self也被retain一次。这样就形成了一个retain cycle。
 
-*** `解决方法`：
+`解决方法`：
+-----------
 ```objc
  //方法一 :
  __block ViewController *blockSelf = self;
@@ -86,47 +94,69 @@ __block：修饰一个变量，表示这个变量能在block中被修改（值�
 ARC模式下 -- block会retain items变量，但是，由于__block变量保存更为底层的变量地址， 因此当此变量被指向其他对象时，block便不对原来的对象负责，引发的结果就是之前对象被release掉，retain cycle被破坏。
 
 __week 也可以用 __unsafe_unretained 替代，但是 __week 更安全些，虽然它不支持IOS5.0以下的系统。
+
 被 __week 或者 __unsafe_unretained 修饰的变量不会被block retain，所以不会形成retain cycle，但是小心，保证你的对象不会在complete之前被释放，否则会得到你意想不到的结果。
 
-* 4.+(void)load;  +(void)initialize；有什么用处和区别？
+* 4. +(void)load;  +(void)initialize；有什么用处和区别？
 
 在Objective-C中，runtime会自动调用每个类的两个方法。
+
 +load会在类初始加载时调用，+initialize会在第一次调用类的类方法或实例方法之前被调用。
+
 这两个方法是可选的，且只有在实现了它们时才会被调用。 
+
 共同点：两个方法都只会被调用一次。
 
+
 * 5.如何高性能的给UIImageView加个圆角？（不准说layer.cornerRadius!）
+* 
 我觉得应该是使用Quartz2D直接绘制图片,得把这个看看。 
+
 步骤： 
-    a、创建目标大小(cropWidth，cropHeight)的画布。
-　　b、使用UIImage的drawInRect方法进行绘制的时候，指定rect为(-x，-y，width，height)。
-　　c、从画布中得到裁剪后的图像。
+
+ a、创建目标大小(cropWidth，cropHeight)的画布。
+ 
+ b、使用UIImage的drawInRect方法进行绘制的时候，指定rect为(-x，-y，width，height)。
+ 
+ c、从画布中得到裁剪后的图像。
+ 
 ```objc
 - (UIImage*)cropImageWithRect:(CGRect)cropRect {     
-CGRect drawRect = CGRectMake(-cropRect.origin.x , -cropRect.origin.y, self.size.width * self.scale, self.size.height * self.scale);   
-UIGraphicsBeginImageContext(cropRect.size);   
-CGContextRef context = UIGraphicsGetCurrentContext();     
-CGContextClearRect(context, CGRectMake(0, 0, cropRect.size.width, cropRect.size.height));    
-[self drawInRect:drawRect];     
-UIImage *image = UIGraphicsGetImageFromCurrentImageContext();   
-UIGraphicsEndImageContext();   
-return image; } 
+   CGRect drawRect = CGRectMake(-cropRect.origin.x , -cropRect.origin.y, self.size.width * self.scale, self.size.height * self.scale);   
+   UIGraphicsBeginImageContext(cropRect.size);   
+   CGContextRef context = UIGraphicsGetCurrentContext();     
+   CGContextClearRect(context, CGRectMake(0, 0, cropRect.size.width, cropRect.size.height));    
+   [self drawInRect:drawRect];     
+   UIImage *image = UIGraphicsGetImageFromCurrentImageContext();   
+   UIGraphicsEndImageContext();   
+   return image; 
+} 
 ``` 
 
 * 6. 我知道你大学毕业过后就没接触过算法数据结构了，但是请你一定告诉我什么是Binary search tree? search的时间复杂度是多少？
 
 Binary search tree:二叉搜索树。 （又：二叉搜索树，二叉排序树）它或者是一棵空树，或者是具有下列性质的二叉树：
+
 若它的左子树不空，则左子树上所有结点的值均小于它的根结点的值；
+
 若它的右子树不空，则右子树上所有结点的值均大于它的根结点的值； 它的左、右子树也分别为二叉排序树
+
 多说无用  上图----23333 
 
 ![二叉搜索树](http://c.hiphotos.baidu.com/baike/c0%3Dbaike80%2C5%2C5%2C80%2C26/sign=79dcefded70735fa85fd46ebff3864d6/8644ebf81a4c510f0b3dafdf6359252dd52aa57e.jpg "二叉搜索树")
 
 
 主要由四个方法：（用C语言实现或者Python）
+
 1.search：时间复杂度为O(h)，h为树的高度
+
 2.traversal：时间复杂度为O(n)，n为树的总结点数。
+
 3.insert：时间复杂度为O(h)，h为树的高度。
+
 4.delete：最坏情况下，时间复杂度为O(h)+指针的移动开销。
+
 可以看到，二叉搜索树的dictionary operation的时间复杂度与树的高度h相关。所以需要尽可能的降低树的高度，由此引出平衡二叉树Balanced binary tree。它要求左右两个子树的高度差的绝对值不超过1，并且左右两个子树都是一棵平衡二叉树。这样就可以将搜索树的高度尽量减小。常用算法有红黑树、AVL、Treap、伸展树等。
+
+@end
 
